@@ -1,0 +1,73 @@
+#
+# Created on November 29. 2019
+# By Aggeliki Barberopoulou
+# Demo Example: Calculate an index ex. NDVI
+#
+#
+#
+import sys, numpy, gdal, subprocess
+from gdalconst import *
+
+# register all of the GDAL drivers
+gdal.AllRegister()
+
+# open the image
+
+imagefilename = "cropped2" ### cropped.tif multiband image file name
+inDs = gdal.Open(imagefilename+'.tif', GA_ReadOnly)
+if inDs is None:
+  print('Could not open '+imagefilename)
+  sys.exit(1)
+print('Image file name = '+imagefilename)
+
+# get image size
+rows = inDs.RasterYSize
+cols = inDs.RasterXSize
+bands = inDs.RasterCount
+print('Rows = '+str(rows)+' Cols = '+str(cols)+' Bands = ',str(bands))
+
+# get the bands
+inBandRED = inDs.GetRasterBand(3) ### RED band number
+inBandNIR = inDs.GetRasterBand(4) ### NIR band number
+# build NumPy arrays
+red = inBandRED.ReadAsArray().astype(numpy.float32)
+nir = inBandNIR.ReadAsArray().astype(numpy.float32)
+
+# create the output image
+indexfilename=imagefilename+'_NDVI.tif' ### Output image file name
+driver = inDs.GetDriver()
+outDs = driver.Create(indexfilename, cols, rows, 1, GDT_Float32)
+if outDs is None:
+  print('Could not create '+ indexfilename)
+  sys.exit(1)
+outBand = outDs.GetRasterBand(1)
+print('Image index file name = '+indexfilename)
+
+#do the calculations
+numerator=numpy.subtract(nir,red)
+denominator=numpy.add(nir,red)
+ndvi=numpy.divide(numerator,denominator)
+
+# write data to disk
+outBand.WriteArray(ndvi)
+outBand.FlushCache()
+
+# georeference the image and set the projection
+outDs.SetGeoTransform(inDs.GetGeoTransform())
+outDs.SetProjection(inDs.GetProjection())
+
+# close files
+inDs = None
+outDs = None
+
+# Display QGIS message
+print(
+"""
+# Run inside QGIS at Plugins->Open python console >>> prompt
+import os # make os functions avaliable here
+os.chdir('') # change to working folder
+execfile('Calculate_NDVI.py') # run your code Python2 QGIS 2.x OR
+exec(open('Calculate_NDVI.py').read()) # run your code Python3 QGIS 3.x
+iface.addRasterLayer(indexfilename, "Image index NDVI") # open result as a new layer
+"""
+)
