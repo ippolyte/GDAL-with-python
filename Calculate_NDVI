@@ -13,7 +13,7 @@ gdal.AllRegister()
 
 # open the image
 
-imagefilename = "cropped2" ### cropped.tif multiband image file name
+imagefilename = "cropped" ### cropped.tif multiband image file name
 inDs = gdal.Open(imagefilename+'.tif', GA_ReadOnly)
 if inDs is None:
   print('Could not open '+imagefilename)
